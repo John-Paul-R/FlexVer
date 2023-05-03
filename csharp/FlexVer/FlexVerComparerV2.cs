@@ -50,9 +50,11 @@ public static class FlexVerComparerV2
 
 		var offsetA = 0;
 		var offSetB = 0;
+		Span<int> codepointsA = stackalloc int[32]; // 32 arbitrarily chosen
+		Span<int> codepointsB = stackalloc int[32];
 		while (true) {
-			var ac = GetNextVersionComponent(a, ref offsetA);
-			var bc = GetNextVersionComponent(b, ref offSetB);
+			var ac = GetNextVersionComponent(a, ref offsetA, codepointsA);
+			var bc = GetNextVersionComponent(b, ref offSetB, codepointsB);
 
 			if (ac.ComponentType is VersionComponentType.Null && bc.ComponentType is VersionComponentType.Null) {
 				return 0;
@@ -60,6 +62,8 @@ public static class FlexVerComparerV2
 
 			int c = VersionComponent.CompareTo(ac, bc);
 			if (c != 0) return c;
+			codepointsA.Clear();
+			codepointsB.Clear();
 		}
 	}
 
@@ -149,7 +153,7 @@ public static class FlexVerComparerV2
 		public override string ToString() => new string(Codepoints.ToArray().Select(el => (char)el).ToArray());
 	}
 
-	internal static VersionComponent GetNextVersionComponent(ReadOnlySpan<char> span, ref int i)
+	internal static VersionComponent GetNextVersionComponent(ReadOnlySpan<char> span, ref int i, Span<int> writableComponentCodepoints)
 	{
 		if (span.Length == i) {
 			return new VersionComponent(ReadOnlySpan<int>.Empty, VersionComponentType.Null);
@@ -157,7 +161,7 @@ public static class FlexVerComparerV2
 
 		bool lastWasNumber = char.IsAsciiDigit(span[i]);
 
-		using ValueListBuilder<int> builder = new ValueListBuilder<int>(stackalloc int[16]); // 16 arbitrarily chosen
+		ValueListBuilder<int> builder = new ValueListBuilder<int>(writableComponentCodepoints); // 16 arbitrarily chosen
 
 		int j = 0;
 		while (i < span.Length) {
@@ -167,28 +171,28 @@ public static class FlexVerComparerV2
 			bool isNumber = char.IsAsciiDigit(cp);
 			if (isNumber != lastWasNumber || (cp == '-' && j > 0 && builder[0] != '-')) {
 				i++;
-				return CreateComponent(lastWasNumber, builder, j);
+				return CreateComponent(lastWasNumber, builder.AsSpan(), j);
 			}
 			j++;
 			builder.Append(cp);
 			i++;
 		}
-		return CreateComponent(lastWasNumber, builder, j);
+		return CreateComponent(lastWasNumber, builder.AsSpan(), j);
 	}
 
-	private static VersionComponent CreateComponent(bool number, scoped ValueListBuilder<int> s, int j)
+	private static VersionComponent CreateComponent(bool number, ReadOnlySpan<int> s, int j)
 	{
-		var s2 = s.AsSpan()[..j].ToArray();
+		s = s[..j];
 
 		if (number) {
-			return new VersionComponent(s2, VersionComponentType.Numeric);
+			return new VersionComponent(s, VersionComponentType.Numeric);
 		}
 
-		if (s2.Length > 1 && s2[0] == '-') {
-			return new VersionComponent(s2, VersionComponentType.SemVerPrerelease);
+		if (s.Length > 1 && s[0] == '-') {
+			return new VersionComponent(s, VersionComponentType.SemVerPrerelease);
 		}
 
-		return new VersionComponent(s2, VersionComponentType.Default);
+		return new VersionComponent(s, VersionComponentType.Default);
 	}
 
 }

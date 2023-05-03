@@ -153,7 +153,10 @@ public static class FlexVerComparer
 		public override string ToString() => new string(Codepoints.ToArray().Select(el => (char)el).ToArray());
 	}
 
-	internal static VersionComponent GetNextVersionComponent(ReadOnlySpan<char> span, ref int i, Span<int> writableComponentCodepoints)
+	internal static VersionComponent GetNextVersionComponent(
+		ReadOnlySpan<char> span,
+		ref int i,
+		Span<int> writableComponentCodepoints)
 	{
 		if (span.Length == i) {
 			return new VersionComponent(ReadOnlySpan<int>.Empty, VersionComponentType.Null);
@@ -161,7 +164,7 @@ public static class FlexVerComparer
 
 		bool lastWasNumber = char.IsAsciiDigit(span[i]);
 
-		ValueListBuilder<int> builder = new ValueListBuilder<int>(writableComponentCodepoints); // 16 arbitrarily chosen
+		ValueListBuilder<int> builder = new ValueListBuilder<int>(writableComponentCodepoints);
 
 		int j = 0;
 		while (i < span.Length) {

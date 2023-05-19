@@ -96,6 +96,7 @@ public class Benchmarker
 		1.4.5_01+fabric-1.17 < 18w40b
 		13w02a < c0.3.0_01
 		0.6.0-1.18.x < 0.9.beta-1.18.x
+		19283091283091283091283901283901289031289031283917280371230912730917290371290371209731209371209312.skfjslakdfjklasjdfklasjdklfjasdlkfjasdlkjflaskdjflkasdjflksadjfklasdjfklsadjfklasdjkfljsakldfjalskjdflas.akdaljskda > 1029301293019231.12312.21312312
 		""";
 #endregion TestData
 }

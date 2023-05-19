@@ -34,6 +34,7 @@ public class Tests
 	[TestCase(null, "1.0.0", Ordering.Less)]
 	[TestCase("1.0.0", null, Ordering.Greater)]
 	[TestCase("1.0.0", "1.0.0", Ordering.Equal)]
+	[TestCase("0000.0.0", "0.0.0", Ordering.Equal)]
 	public void TestEquality_DefaultComparerInstance_HandlesClrNulls(string? a, string? b, Ordering expectedOrdering)
 	{
 		Ordering c = OrderingExtensions.FromComparison(FlexVerComparer.Default.Compare(a, b));

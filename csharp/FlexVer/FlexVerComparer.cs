@@ -166,21 +166,25 @@ public static class FlexVerComparer
 
 		ValueListBuilder<int> builder = new ValueListBuilder<int>(writableComponentCodepoints);
 
-		int j = 0;
+		int currentComponentCharCount = 0;
 		while (i < span.Length) {
 			char cp = span[i];
 			if (char.IsHighSurrogate(cp)) i++;
 			if (cp == '+') break; // remove appendices
 			bool isNumber = char.IsAsciiDigit(cp);
-			if (isNumber != lastWasNumber || (cp == '-' && j > 0 && builder[0] != '-')) {
+			if (// Ending a Number component
+				isNumber != lastWasNumber
+				// Starting a new PreRelease component
+			    || (cp == '-' && currentComponentCharCount > 0 && builder[0] != '-')
+			) {
 				i++;
-				return CreateComponent(lastWasNumber, builder.AsSpan(), j);
+				return CreateComponent(lastWasNumber, builder.AsSpan(), currentComponentCharCount);
 			}
-			j++;
+			currentComponentCharCount++;
 			builder.Append(cp);
 			i++;
 		}
-		return CreateComponent(lastWasNumber, builder.AsSpan(), j);
+		return CreateComponent(lastWasNumber, builder.AsSpan(), currentComponentCharCount);
 	}
 
 	private static VersionComponent CreateComponent(bool number, ReadOnlySpan<int> s, int j)

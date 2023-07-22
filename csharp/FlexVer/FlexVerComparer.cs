@@ -25,6 +25,9 @@ namespace FlexVer;
  */
 public static class FlexVerComparer
 {
+	private const char AppendixStartCh = '+';
+	private const char PreReleaseStartCh = '-';
+
 	public static IComparer<string> Default { get; } = new FlexVerComparerImpl();
 
 	private sealed class FlexVerComparerImpl : IComparer<string>
@@ -72,7 +75,7 @@ public static class FlexVerComparer
 
 	private static ReadOnlySpan<char> WithoutAppendix(string versionString)
 	{
-		var appendixIdx = versionString.IndexOf('+');
+		var appendixIdx = versionString.IndexOf(AppendixStartCh);
 		return appendixIdx == -1 ? versionString : versionString.AsSpan()[..appendixIdx];
 	}
 
@@ -185,7 +188,7 @@ public static class FlexVerComparer
 			if (// Ending a Number component
 				isNumber != lastWasNumber
 				// Starting a new PreRelease component
-			    || (cp == '-' && currentComponentCharCount > 0 && builder[0] != '-')
+			    || (cp == PreReleaseStartCh && currentComponentCharCount > 0 && builder[0] != PreReleaseStartCh)
 			) {
 				return CreateComponent(lastWasNumber, builder.AsSpan(), currentComponentCharCount);
 			}
@@ -204,7 +207,7 @@ public static class FlexVerComparer
 			return new VersionComponent(s, VersionComponentType.Numeric);
 		}
 
-		if (s.Length > 1 && s[0] == '-') {
+		if (s.Length > 1 && s[0] == PreReleaseStartCh) {
 			return new VersionComponent(s, VersionComponentType.SemVerPrerelease);
 		}
 

@@ -51,11 +51,13 @@ public static class FlexVerComparer
 
 		var offsetA = 0;
 		var offSetB = 0;
+		ReadOnlySpan<char> aSpan = WithoutAppendix(a);
+		ReadOnlySpan<char> bSpan = WithoutAppendix(b);
 		Span<int> codepointsA = stackalloc int[32]; // 32 arbitrarily chosen
 		Span<int> codepointsB = stackalloc int[32];
 		while (true) {
-			var ac = GetNextVersionComponent(a, ref offsetA, codepointsA);
-			var bc = GetNextVersionComponent(b, ref offSetB, codepointsB);
+			var ac = GetNextVersionComponent(aSpan, ref offsetA, codepointsA);
+			var bc = GetNextVersionComponent(bSpan, ref offSetB, codepointsB);
 
 			if (ac.ComponentType is VersionComponentType.Null && bc.ComponentType is VersionComponentType.Null) {
 				return 0;
@@ -68,6 +70,12 @@ public static class FlexVerComparer
 		}
 	}
 
+	private static ReadOnlySpan<char> WithoutAppendix(string versionString)
+	{
+		var appendixIdx = versionString.IndexOf('+');
+		return appendixIdx == -1 ? versionString : versionString.AsSpan()[..appendixIdx];
+	}
+
 	internal enum VersionComponentType
 	{
 		Default,
@@ -76,7 +84,7 @@ public static class FlexVerComparer
 		Null,
 	}
 
-	[DebuggerDisplay("{ComponentType} | '{Codepoints}'")]
+	[DebuggerDisplay("{ComponentType} | '{this.ToString()}'")]
 	internal ref struct VersionComponent
 	{
 		public ReadOnlySpan<int> Codepoints { get; }
@@ -96,6 +104,7 @@ public static class FlexVerComparer
 			{
 				VersionComponentType.Default => CompareToBase(cur, other),
 				VersionComponentType.Null when other.ComponentType == VersionComponentType.Null => 0,
+				VersionComponentType.Null when other.ComponentType == VersionComponentType.SemVerPrerelease => 1,
 				VersionComponentType.Null => -CompareToBase(other, cur),
 				VersionComponentType.Numeric => CompareToNumeric(cur, other),
 				VersionComponentType.SemVerPrerelease => CompareToSemVerPrerelease(cur, other)
@@ -171,14 +180,13 @@ public static class FlexVerComparer
 		while (i < span.Length) {
 			char cp = span[i];
 			if (char.IsHighSurrogate(cp)) i++;
-			if (cp == '+') break; // remove appendices
+
 			bool isNumber = char.IsAsciiDigit(cp);
 			if (// Ending a Number component
 				isNumber != lastWasNumber
 				// Starting a new PreRelease component
 			    || (cp == '-' && currentComponentCharCount > 0 && builder[0] != '-')
 			) {
-				i++;
 				return CreateComponent(lastWasNumber, builder.AsSpan(), currentComponentCharCount);
 			}
 			currentComponentCharCount++;

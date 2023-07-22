@@ -54,13 +54,13 @@ public static class FlexVerComparer
 
 		var offsetA = 0;
 		var offSetB = 0;
-		ReadOnlySpan<char> aSpan = WithoutAppendix(a);
-		ReadOnlySpan<char> bSpan = WithoutAppendix(b);
 		Span<ushort> codepointsA = stackalloc ushort[32]; // 32 arbitrarily chosen
 		Span<ushort> codepointsB = stackalloc ushort[32];
+		bool aHitAppendix = false;
+		bool bHitAppendix = false;
 		while (true) {
-			var ac = GetNextVersionComponent(aSpan, ref offsetA, codepointsA);
-			var bc = GetNextVersionComponent(bSpan, ref offSetB, codepointsB);
+			var ac = GetNextVersionComponent(a, ref offsetA, ref aHitAppendix, codepointsA);
+			var bc = GetNextVersionComponent(b, ref offSetB, ref bHitAppendix, codepointsB);
 
 			if (ac.ComponentType is VersionComponentType.Null && bc.ComponentType is VersionComponentType.Null) {
 				return 0;
@@ -71,12 +71,6 @@ public static class FlexVerComparer
 			codepointsA.Clear();
 			codepointsB.Clear();
 		}
-	}
-
-	private static ReadOnlySpan<char> WithoutAppendix(string versionString)
-	{
-		var appendixIdx = versionString.IndexOf(AppendixStartCh);
-		return appendixIdx == -1 ? versionString : versionString.AsSpan()[..appendixIdx];
 	}
 
 	internal enum VersionComponentType
@@ -169,9 +163,10 @@ public static class FlexVerComparer
 	internal static VersionComponent GetNextVersionComponent(
 		ReadOnlySpan<char> span,
 		ref int i,
+		ref bool hitAppendix,
 		Span<ushort> writableComponentCodepoints)
 	{
-		if (span.Length == i) {
+		if (span.Length == i || hitAppendix) {
 			return new VersionComponent(ReadOnlySpan<ushort>.Empty, VersionComponentType.Null);
 		}
 
@@ -179,30 +174,30 @@ public static class FlexVerComparer
 
 		ValueListBuilder<ushort> builder = new ValueListBuilder<ushort>(writableComponentCodepoints);
 
-		int currentComponentCharCount = 0;
 		while (i < span.Length) {
 			char cp = span[i];
 			if (char.IsHighSurrogate(cp)) i++;
+			if (cp == AppendixStartCh) {
+				hitAppendix = true;
+				break;
+			}
 
 			bool isNumber = char.IsAsciiDigit(cp);
 			if (// Ending a Number component
 				isNumber != lastWasNumber
 				// Starting a new PreRelease component
-			    || (cp == PreReleaseStartCh && currentComponentCharCount > 0 && builder[0] != PreReleaseStartCh)
+			    || (cp == PreReleaseStartCh && builder.Length > 0 && builder[0] != PreReleaseStartCh)
 			) {
-				return CreateComponent(lastWasNumber, builder.AsSpan(), currentComponentCharCount);
+				return CreateComponent(lastWasNumber, builder.AsSpan());
 			}
-			currentComponentCharCount++;
 			builder.Append(cp);
 			i++;
 		}
-		return CreateComponent(lastWasNumber, builder.AsSpan(), currentComponentCharCount);
+		return CreateComponent(lastWasNumber, builder.AsSpan());
 	}
 
-	private static VersionComponent CreateComponent(bool number, ReadOnlySpan<ushort> s, int j)
+	private static VersionComponent CreateComponent(bool number, ReadOnlySpan<ushort> s)
 	{
-		s = s[..j];
-
 		if (number) {
 			return new VersionComponent(s, VersionComponentType.Numeric);
 		}

@@ -9,6 +9,7 @@
 
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 
 [assembly:InternalsVisibleTo("FlexVerTests")]
 
@@ -150,7 +151,7 @@ public static class FlexVerComparer
 			return a[i..];
 		}
 
-		public override string ToString() => new string(Codepoints.ToArray().Select(el => (char)el).ToArray());
+		public override string ToString() => new(MemoryMarshal.Cast<int, char>(Codepoints));
 	}
 
 	internal static VersionComponent GetNextVersionComponent(

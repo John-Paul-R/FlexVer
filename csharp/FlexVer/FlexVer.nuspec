@@ -26,6 +26,6 @@
     <!-- Optional 'files' node -->
     <files>
         <file src="../FlexVer-logo.png" target="\" />
-        <file src="../../README.md" target="\" />
+        <file src="./README.md" target="\" />
     </files>
 </package>

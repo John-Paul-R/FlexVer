@@ -10,14 +10,6 @@ public class Benchmarker
 	private List<(string, string)> _versionsToCompare = null!;
 
 	[Benchmark]
-	public void CompareAll_New()
-	{
-		foreach (var (a, b) in _versionsToCompare) {
-			// FlexVerComparerV2.Compare(a, b);
-		}
-	}
-
-	[Benchmark]
 	public void CompareAll_Existing()
 	{
 		foreach (var (a, b) in _versionsToCompare) {
